@@ -2,8 +2,17 @@ import { Validator } from '@parcel/plugin'
 
 let cliEngine = null
 
-export default (new Validator({
+const EslintValidator = (new Validator({
   async validate({asset, options}) {
+
+    let validatorResult = {
+      warnings: [],
+      errors: [],
+    }
+    validatorResult.errors.push({
+      origin: 'hoge',
+      message: asset.filePath
+    })
     let eslint = await options.packageManager.require(
       'eslint',
       asset.filePath,
@@ -14,11 +23,6 @@ export default (new Validator({
     }
     let code = await asset.getCode()
     let report = cliEngine.executeOnText(code, asset.filePath)
-
-    let validatorResult = {
-      warnings: [],
-      errors: [],
-    }
 
     if (report.results.length > 0) {
       for (let result of report.results) {
@@ -64,3 +68,4 @@ export default (new Validator({
     return validatorResult
   },
 }))
+export default EslintValidator
