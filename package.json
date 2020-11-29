@@ -1,0 +1,25 @@
+{
+  "name": "parcel-validator-eslint",
+  "version": "0.1.0",
+  "author": "RyoheiTomiyama",
+  "engines": {
+    "parcel": "2.x"
+  },
+  "license": "MIT",
+  "keywords": [
+    "Parcel"
+  ],
+  "source": "src/EslintValidator.js",
+  "main": "dist/EslintValidator.cjs.js",
+  "module": "dist/EslintValidator.esm.js",
+  "unpkg": "dist/EslintValidator.umd.js",
+  "scripts": {
+    "build": "rollup --config build/rollup.config.js"
+  },
+  "devDependencies": {
+    "@parcel/plugin": "^2.0.0-beta.1",
+    "@parcel/utils": "^2.0.0-beta.1",
+    "@rollup/plugin-buble": "^0.21.3",
+    "rollup": "^2.34.0"
+  }
+}
