@@ -1,68 +1,50 @@
 import { Validator } from '@parcel/plugin'
 
-let cliEngine = null
-
 const EslintValidator = (new Validator({
   async validate({asset, options}) {
+    const npmPackage = await asset.getPackage()
 
-    let validatorResult = {
+    const validatorResult = {
       warnings: [],
       errors: [],
     }
-    validatorResult.errors.push({
-      origin: 'hoge',
-      message: asset.filePath
-    })
-    let eslint = await options.packageManager.require(
+
+    const { ESLint } = await options.packageManager.require(
       'eslint',
       asset.filePath,
-      {autoinstall: options.autoinstall},
+      { autoinstall: options.autoinstall },
     )
-    if (!cliEngine) {
-      cliEngine = new eslint.CLIEngine({})
-    }
-    let code = await asset.getCode()
-    let report = cliEngine.executeOnText(code, asset.filePath)
+    
+    const eslintOptions = Object.fromEntries(
+      Object
+        .entries(npmPackage?.config?.parcel?.eslint || {})
+        .filter(([_, v]) => typeof v !== 'undefined')
+    )
 
-    if (report.results.length > 0) {
-      for (let result of report.results) {
-        if (!result.errorCount && !result.warningCount) continue
+    const eslint = new ESLint(eslintOptions)
+    const code = await asset.getCode()
+    const results = await eslint.lintText(code, {
+      filePath: asset.filePath
+    })
 
-        let codeframe = {
-          code: result.source,
-          codeHighlights: result.messages.map(message => {
-            let start = {
-              line: message.line,
-              column: message.column,
-            }
-            return {
-              start,
-              // Parse errors have no ending
-              end:
-                message.endLine != null
-                  ? {
-                      line: message.endLine,
-                      column: message.endColumn,
-                    }
-                  : start,
-              message: message.message,
-            }
-          }),
-        }
+    await ESLint.outputFixes(results)
 
-        let diagnostic = {
-          origin: 'parcel-validator-eslint',
-          message: `ESLint found **${result.errorCount}** __errors__ and **${result.warningCount}** __warnings__.`,
-          filePath: asset.filePath,
-          codeFrame: codeframe,
-        }
-
-        if (result.errorCount > 0) {
-          validatorResult.errors.push(diagnostic)
-        } else {
-          validatorResult.warnings.push(diagnostic)
-        }
-      }
+    if (results.some((result) => result.errorCount)) {
+      const formatter = await eslint.loadFormatter('codeframe');
+      const resultText = formatter.format(results);
+      validatorResult.errors.push({
+        origin: 'parcel-validator-eslint',
+        message: resultText,
+        filePath: asset.filePath,
+      }) 
+    } else if (results.some((result) => result.warningCount)) {
+      const formatter = await eslint.loadFormatter('codeframe');
+      const resultText = formatter.format(results);
+      validatorResult.warnings.push({
+        origin: 'parcel-validator-eslint',
+        message: resultText,
+        filePath: asset.filePath,
+      }) 
     }
 
     return validatorResult
